@@ -31,8 +31,8 @@ class YouTubeChannel:
     A data class to hold YouTubeChannel information
     """
 
-    monthly_earning: str = None
-    yearly_earning: str = None
+    estimated_monthly_earning: str = None
+    estimated_yearly_earning: str = None
     total_uploads: int = None
     total_subscribers: int = None
     total_views: int = None
@@ -49,7 +49,7 @@ class YouTubeChannel:
         return dumps(self.__dict__)
 
 
-def monthly_earnings_search(soup: BeautifulSoup) -> Union[str, None]:
+def estimated_monthly_earnings_search(soup: BeautifulSoup) -> Union[str, None]:
     """
     Logic to search for the monthly earnings data. Cleans the found raw data and returns new fresh data.
     :param soup: BeautifulSoup object
@@ -63,7 +63,7 @@ def monthly_earnings_search(soup: BeautifulSoup) -> Union[str, None]:
         return f'{raw_text[0]} - {raw_text[-1]}'
 
 
-def yearly_earnings_search(soup: BeautifulSoup) -> Union[str, None]:
+def estimated_yearly_earnings_search(soup: BeautifulSoup) -> Union[str, None]:
     """
     Logic to search for the yearly earnings data. Cleans the found raw data and returns new fresh data.
     :param soup: BeautifulSoup object
@@ -260,8 +260,8 @@ def home_page_scrape(channel_name: str, channel: YouTubeChannel) -> bool:
         # is valid or not
         return False
 
-    channel.monthly_earning = monthly_earnings_search(soup)
-    channel.yearly_earning = yearly_earnings_search(soup)
+    channel.estimated_monthly_earning = estimated_monthly_earnings_search(soup)
+    channel.estimated_yearly_earning = estimated_yearly_earnings_search(soup)
     channel.total_uploads = total_uploads_search(soup)
     channel.total_subscribers = total_subscribers_search(soup)
     channel.total_views = total_views_search(soup)

@@ -16,8 +16,8 @@ def show_basic():
         return
 
     print('-------------------------------------------------------')
-    print('Monthly earnings: ', channel.monthly_earning)
-    print('Yearly earnings: ', channel.yearly_earning)
+    print('Monthly earnings: ', channel.estimated_monthly_earning)
+    print('Yearly earnings: ', channel.estimated_yearly_earning)
     print('-------------------------------------------------------\n')
 
     print('Daily stats')
