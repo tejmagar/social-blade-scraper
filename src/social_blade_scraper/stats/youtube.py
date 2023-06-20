@@ -167,7 +167,7 @@ def fetch_monthly_page(channel_name: str) -> Union[str, None]:
         return response.text
 
 
-def total_uploads_search(soup) -> Union[int, None]:
+def total_uploads_search(soup: BeautifulSoup) -> Union[int, None]:
     """
     Logic to search total uploads
 
@@ -180,7 +180,7 @@ def total_uploads_search(soup) -> Union[int, None]:
         return int(tag.text.strip())
 
 
-def total_subscribers_search(soup) -> Union[str, None]:
+def total_subscribers_search(soup: BeautifulSoup) -> Union[str, None]:
     """
     Logic to search total subscribers
 
@@ -193,7 +193,7 @@ def total_subscribers_search(soup) -> Union[str, None]:
         return tag.text.strip()
 
 
-def total_views_search(soup) -> Union[int, None]:
+def total_views_search(soup: BeautifulSoup) -> Union[int, None]:
     """
     Logic to search total views
     :param soup: BeautifulSoup object
@@ -205,7 +205,7 @@ def total_views_search(soup) -> Union[int, None]:
         return int(tag.text.strip())
 
 
-def country_search(soup) -> Union[str, None]:
+def country_search(soup: BeautifulSoup) -> Union[str, None]:
     """
     Logic to search channel's country
 
@@ -218,7 +218,7 @@ def country_search(soup) -> Union[str, None]:
         return tag.text.strip()
 
 
-def date_created_search(soup) -> Union[str, None]:
+def date_created_search(soup: BeautifulSoup) -> Union[str, None]:
     """
     Logic to search channel's country
 
