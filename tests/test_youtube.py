@@ -1,5 +1,10 @@
+import sys
+
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from src.socialblade_scraper.stats.youtube import youtube
 
-
-channel = youtube(url='https://www.youtube.com/@MrFeast')
-print(channel)
+print(youtube(channel_name='MrFeast'))
