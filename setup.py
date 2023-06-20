@@ -6,7 +6,7 @@ with open("README.md", "r") as file:
 
 setup(
     name="social-blade-scraper",
-    version="0.0.1",
+    version="0.0.4",
     description="Social blade scraper",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -17,10 +17,7 @@ setup(
         "requests",
         "fake-useragent"
     ],
-    package_dir={"": "src"},
-    packages=setuptools.find_packages(
-        where='src',
-    ),
+    package_dir={'': 'src'},
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
