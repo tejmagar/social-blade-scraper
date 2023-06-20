@@ -1,14 +1,13 @@
 from concurrent.futures import ThreadPoolExecutor, wait
-from typing import Union, List
+from typing import Union, List, Tuple
 
-import requests
 from bs4 import BeautifulSoup
-from fake_useragent import UserAgent
-from requests import Response
-
 import re
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
+
+from src.social_blade_scraper.fetch import fetch
+from json import dumps
 
 
 @dataclass(frozen=True)
@@ -32,29 +31,22 @@ class YouTubeChannel:
     A data class to hold YouTubeChannel information
     """
 
-    monthly_earning: str
-    yearly_earning: str
-    daily_stats: List[DailyStat]
+    monthly_earning: str = None
+    yearly_earning: str = None
+    total_uploads: int = None
+    total_subscribers: int = None
+    total_views: int = None
+    country: str = None
+    date_created: str = None
+    daily_stats: List[DailyStat] = None
 
+    @property
+    def __dict__(self) -> dict:
+        return asdict(self)
 
-def fetch(target_url: str) -> Response:
-    # Create a UserAgent object
-    user_agent = UserAgent()
-
-    # Generate a random user agent string for Firefox
-    firefox_user_agent = user_agent.firefox
-
-    headers = {
-        "User-Agent": firefox_user_agent,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br",
-        "DNT": "1",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-    }
-
-    return requests.get(target_url, headers=headers)
+    @property
+    def json(self) -> str:
+        return dumps(self.__dict__)
 
 
 def monthly_earnings_search(soup: BeautifulSoup) -> Union[str, None]:
@@ -95,6 +87,7 @@ def daily_stats_search(soup: BeautifulSoup) -> List[DailyStat]:
     """
 
     data = []
+
     # Using regex to extract all divs with the staring following style value because of even odd row style is used
     rows = soup.find_all('div', attrs={'style': re.compile('^width: 860px; height: 32px; line-height: 32px;')})
     for row in rows:
@@ -149,24 +142,164 @@ def daily_stats_search(soup: BeautifulSoup) -> List[DailyStat]:
     return data
 
 
-def social_blade_scrape(content: str) -> YouTubeChannel:
-    # Create a BeautifulSoup object with the HTML content
-    soup = BeautifulSoup(content, 'html.parser')
+def fetch_homepage(channel_name: str) -> Union[str, None]:
+    """
+    Returns home page source code
 
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        # Submit the tasks to the executor
-        future_monthly_earning = executor.submit(monthly_earnings_search, soup)
-        future_yearly_earning = executor.submit(yearly_earnings_search, soup)
-        future_daily_stats = executor.submit(daily_stats_search, soup)
+    :param channel_name: YouTube channel name
+    :return: Union[str, None]
+    """
+    target_url = f'https://socialblade.com/youtube/c/{channel_name}'
+    return fetch(target_url).text
+
+
+def fetch_monthly_page(channel_name: str) -> Union[str, None]:
+    """ Returns source code of monthly stats page
+
+    :param channel_name: YouTube channel name
+    :return: Union[str, None]
+    """
+
+    target_url = f'https://socialblade.com/youtube/c/{channel_name}/monthly'
+    response = fetch(target_url)
+
+    if response.ok:
+        return response.text
+
+
+def total_uploads_search(soup) -> Union[int, None]:
+    """
+    Logic to search total uploads
+
+    :param soup: BeautifulSoup object
+    :return: str
+    """
+
+    tag = soup.select_one('#youtube-stats-header-uploads')
+    if tag:
+        return int(tag.text.strip())
+
+
+def total_subscribers_search(soup) -> Union[str, None]:
+    """
+    Logic to search total subscribers
+
+    :param soup: BeautifulSoup object
+    :return: str
+    """
+
+    tag = soup.select_one('#youtube-stats-header-subs')
+    if tag:
+        return tag.text.strip()
+
+
+def total_views_search(soup) -> Union[int, None]:
+    """
+    Logic to search total views
+    :param soup: BeautifulSoup object
+    :return: str
+    """
+
+    tag = soup.select_one('#youtube-stats-header-views')
+    if tag:
+        return int(tag.text.strip())
+
+
+def country_search(soup) -> Union[str, None]:
+    """
+    Logic to search channel's country
+
+    :param soup: BeautifulSoup object
+    :return: str
+    """
+
+    tag = soup.select_one('#youtube-user-page-country')
+    if tag:
+        return tag.text.strip()
+
+
+def date_created_search(soup) -> Union[str, None]:
+    """
+    Logic to search channel's country
+
+    :param soup: BeautifulSoup object
+    :return: str
+    """
+
+    tags = soup.select('.YouTubeUserTopInfo')
+    if not len(tags) > 0:
+        return
+
+    selected_tag = tags[-1]
+    spans = selected_tag.find_all('span')
+    return spans[-1].text.strip()
+
+
+def home_page_scrape(channel_name: str, channel: YouTubeChannel) -> bool:
+    """
+    Returns True if home page is scraped successfully else false
+    :param channel_name: YouTube channel name
+    :param channel: temporary channel instance to store information
+    :return: bool
+    """
+
+    code = fetch_homepage(channel_name)
+    if not code:
+        return False
+
+    soup = BeautifulSoup(code, 'html.parser')
+
+    channel.date_created = date_created_search(soup)
+
+    # Check if the page has date created information. If the page don't have, stop scanning further
+    if not channel.date_created:
+        # Using date_created field as a primary source to check whether the page
+        # is valid or not
+        return False
+
+    channel.monthly_earning = monthly_earnings_search(soup)
+    channel.yearly_earning = yearly_earnings_search(soup)
+    channel.total_uploads = total_uploads_search(soup)
+    channel.total_subscribers = total_subscribers_search(soup)
+    channel.total_views = total_views_search(soup)
+    channel.country = country_search(soup)
+    return True
+
+
+def daily_stats_scrape(channel_name: str) -> List[DailyStat]:
+    """
+    Returns  30 days daily stats
+
+    :param channel_name: YouTube channel name
+    :return:
+    """
+
+    code = fetch_monthly_page(channel_name)
+    if not code:
+        return []
+
+    soup = BeautifulSoup(code, 'html.parser')
+    return daily_stats_search(soup)
+
+
+def social_blade_scrape(channel_name: str) -> Union[YouTubeChannel, None]:
+    # Create a BeautifulSoup object with the HTML content
+
+    with ThreadPoolExecutor() as executor:
+        channel = YouTubeChannel()
+        future_homepage_scrape = executor.submit(home_page_scrape, channel_name, channel)
+        future_daily_stats_scrape = executor.submit(daily_stats_scrape, channel_name)
 
         # Wait for futures to complete
-        wait([future_monthly_earning, future_yearly_earning, future_daily_stats])
+        wait([future_homepage_scrape, future_daily_stats_scrape])
 
-        return YouTubeChannel(
-            monthly_earning=future_monthly_earning.result(),
-            yearly_earning=future_yearly_earning.result(),
-            daily_stats=future_daily_stats.result()
-        )
+        # Check if the home page is scraped successfully
+        if not future_homepage_scrape.result():
+            # Maybe got 404 status because channel don't exist or something went wrong
+            return None
+
+        channel.daily_stats = future_daily_stats_scrape.result()
+        return channel
 
 
 def get_username_from_url(url: str) -> Union[str, None]:
@@ -177,9 +310,9 @@ def get_username_from_url(url: str) -> Union[str, None]:
         return url_split[-1]
 
 
-def youtube(url: str = None, channel_name: str = None, content: str = None) -> Union[YouTubeChannel, None]:
+def youtube(url: str = None, channel_name: str = None) -> Union[YouTubeChannel, None]:
     """
-    Priority order: content, channel_name, url
+    Priority order: channel_name, url
     Start scraping social blade easily.
 
     # Using URL
@@ -187,9 +320,6 @@ def youtube(url: str = None, channel_name: str = None, content: str = None) -> U
 
     # Using channel name
     >> channel = youtube(url='MrFeast')
-
-    # Using your custom fetch content. This can be useful when you want to send custom header or use proxy for scraping
-    >> channel = youtube(content=response.text)
 
     # Example usage
     >> channel.monthly_earning
@@ -200,25 +330,68 @@ def youtube(url: str = None, channel_name: str = None, content: str = None) -> U
 
     :param url: YouTube channel url
     :param channel_name: YouTube channel name
-    :param content: HTML code of the page
     :return: Union[YouTubeChannel, None]
     """
-
-    if content:
-        return social_blade_scrape(content)
 
     if not (url or channel_name):
         return None
 
-    target_url = 'https://socialblade.com/youtube/c/'
-    if channel_name:
-        target_url += channel_name
+    if url:
+        # Extract username from URL
+        channel_name = get_username_from_url(url)
 
-    elif url:
-        target_url += get_username_from_url(url)
+    if not channel_name:
+        return None
 
+    return social_blade_scrape(channel_name)
+
+
+def subscribers_count_access_tokens_search(soup: BeautifulSoup) -> Union[Tuple[str, str], None]:
+    """
+    Finds tokens to access subscribers count page
+
+    :param soup: BeautifulSoup object
+    :return: Union[Tuple[str, str], None]:
+    """
+
+    encoded_query = soup.select_one('#rawUser')
+    token = soup.select_one('#rawToken')
+
+    if encoded_query and token:
+        return encoded_query.text.strip(), token.text.strip()
+
+
+def subscribers_count_access_tokens(channel_name: str) -> Union[Tuple[str, str], None]:
+    target_url = f'https://socialblade.com/youtube/user/{channel_name}/realtime'
     response = fetch(target_url)
+
     if not response.ok:
         return None
 
-    return social_blade_scrape(response.text)
+    code = response.text
+    soup = BeautifulSoup(code, 'html.parser')
+    return subscribers_count_access_tokens_search(soup)
+
+
+def live_subscriber_count(encoded_query: str, token: str) -> Union[int, None]:
+    """
+    Returns live subscriber number
+
+    :param encoded_query User Query
+    :param token: View token
+    :return: str
+    """
+
+    url = 'https://bastet.socialblade.com/youtube/lookup'
+    params = {
+        'query': encoded_query,
+        'token': token
+    }
+
+    response = fetch(url, params=params, extra_headers={
+        'Origin': 'https://socialblade.com',
+        'Referer': 'https://socialblade.com/',
+    })
+
+    if response.ok:
+        return int(response.text)
