@@ -27,7 +27,7 @@ def show_basic():
         print(f'{stat.date} | {stat.estimated_earnings} | {stat.subscribers_count} | {stat.total_views}')
     print('-------------------------------------------------------')
 
-    print('Total views:', channel.total_uploads)
+    print('Total uploads:', channel.total_uploads)
     print('Total subscribes:', channel.total_subscribers)
     print('Total views:', channel.total_views)
     print('Country:', channel.country)
