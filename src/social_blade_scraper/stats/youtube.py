@@ -150,7 +150,10 @@ def fetch_homepage(channel_name: str) -> Union[str, None]:
     :return: Union[str, None]
     """
     target_url = f'https://socialblade.com/youtube/c/{channel_name}'
-    return fetch(target_url).text
+    response = fetch(target_url)
+
+    if response.ok:
+        return response.text
 
 
 def fetch_monthly_page(channel_name: str) -> Union[str, None]:
