@@ -31,6 +31,10 @@ class YouTubeChannel:
     A data class to hold YouTubeChannel information
     """
 
+    identifier: str = None
+    profile: str = None
+    banner: str = None
+    category: str = None
     estimated_monthly_earning: str = None
     estimated_yearly_earning: str = None
     total_uploads: int = None
@@ -47,6 +51,32 @@ class YouTubeChannel:
     @property
     def json(self) -> str:
         return dumps(self.__dict__)
+
+
+def identifier_search(soup: BeautifulSoup) -> Union[str, None]:
+    """
+    Logic to search channel identifier
+
+    :param soup: BeautifulSoup object
+    :return: str
+    """
+
+    tag = soup.select_one('#fav-bubble')
+    if tag:
+        return tag['class'][0]
+
+
+def profile_search(soup: BeautifulSoup) -> Union[str, None]:
+    """
+    Logic to search profile url
+
+    :param soup: BeautifulSoup object
+    :return: str
+    """
+
+    tag = soup.select_one('#YouTubeUserTopInfoAvatar')
+    if tag:
+        return tag['src']
 
 
 def estimated_monthly_earnings_search(soup: BeautifulSoup) -> Union[str, None]:
@@ -238,6 +268,19 @@ def date_created_search(soup: BeautifulSoup) -> Union[str, None]:
     return spans[-1].text.strip()
 
 
+def channel_category_search(soup: BeautifulSoup) -> Union[str, None]:
+    """
+       Logic to search channel category
+
+       :param soup: BeautifulSoup object
+       :return: str
+       """
+
+    tag = soup.select_one('#youtube-stats-header-channeltype')
+    if tag:
+        return tag.text.strip()
+
+
 def home_page_scrape(channel_name: str, channel: YouTubeChannel) -> bool:
     """
     Returns True if home page is scraped successfully else false
@@ -260,6 +303,10 @@ def home_page_scrape(channel_name: str, channel: YouTubeChannel) -> bool:
         # is valid or not
         return False
 
+    channel.identifier = identifier_search(soup)
+    channel.profile = profile_search(soup)
+    channel.category = channel_category_search(soup)
+    channel.banner = f'https://www.banner.yt/{channel.identifier}'
     channel.estimated_monthly_earning = estimated_monthly_earnings_search(soup)
     channel.estimated_yearly_earning = estimated_yearly_earnings_search(soup)
     channel.total_uploads = total_uploads_search(soup)

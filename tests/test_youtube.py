@@ -6,7 +6,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from src.social_blade_scraper.stats.youtube import youtube, subscribers_count_access_tokens, live_subscriber_count
 
 print('Please provide channel handle. Eg: MrFeast')
-target_channel = input('Type here: ')
+# target_channel = input('Type here: ')
+target_channel = 'mrbeast'
 
 
 def show_basic():
@@ -27,6 +28,10 @@ def show_basic():
         print(f'{stat.date} | {stat.estimated_earnings} | {stat.subscribers_count} | {stat.total_views}')
     print('-------------------------------------------------------')
 
+    print('Channel Identifier:', channel.identifier)
+    print('Profile URL:', channel.profile)
+    print('Channel category:', channel.category)
+    print('Channel banner:', channel.banner)
     print('Total uploads:', channel.total_uploads)
     print('Total subscribes:', channel.total_subscribers)
     print('Total views:', channel.total_views)
