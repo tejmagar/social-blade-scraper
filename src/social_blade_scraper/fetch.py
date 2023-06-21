@@ -1,9 +1,11 @@
-import requests
 from fake_useragent import UserAgent
-from requests import Response
+from httpx import AsyncClient, Response
+
+# Since, same host is used to  scrape data, using HTTPX library
+client = AsyncClient()
 
 
-def default_fetch(target_url: str, params: dict = None, extra_headers: dict = None) -> Response:
+async def default_fetch(target_url: str, params: dict = None, extra_headers: dict = None) -> Response:
     # Create a UserAgent object
     user_agent = UserAgent()
 
@@ -22,7 +24,7 @@ def default_fetch(target_url: str, params: dict = None, extra_headers: dict = No
     if extra_headers:
         headers = {**headers, **extra_headers}
 
-    return requests.get(target_url, params=params, headers=headers)
+    return await client.get(target_url, params=params, headers=headers)
 
 
 fetch = default_fetch

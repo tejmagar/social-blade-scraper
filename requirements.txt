@@ -65,7 +65,7 @@ pyxdg==0.27
 PyYAML==5.4.1
 readme-renderer==40.0
 reportlab==3.6.8
-requests==2.25.1
+requests~=2.31.0
 requests-toolbelt==1.0.0
 rfc3986==2.0.0
 rich==13.4.2
@@ -92,3 +92,7 @@ webencodings==0.5.1
 xdg==5
 xkit==0.0.0
 zipp==1.0.0
+
+bs4~=0.0.1
+httpx~=0.24.1
+setuptools~=67.8.0

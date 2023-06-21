@@ -1,3 +1,4 @@
+import asyncio
 import sys
 import os
 
@@ -12,8 +13,8 @@ target_channel = input('Type here: ')
 # target_channel = 'mrfeast'
 
 
-def show_basic():
-    channel = youtube(channel_name=target_channel)
+async def show_basic():
+    channel = await youtube(channel_name=target_channel)
     if not channel:
         print('Channel don\'t exist')
         return
@@ -25,10 +26,11 @@ def show_basic():
 
     print('Daily stats')
 
-    print('-------------------------------------------------------')
-    for stat in channel.daily_stats:
-        print(f'{stat.date} | {stat.estimated_earnings} | {stat.subscribers_count} | {stat.total_views}')
-    print('-------------------------------------------------------')
+    if channel.daily_stats:
+        print('-------------------------------------------------------')
+        for stat in channel.daily_stats:
+            print(f'{stat.date} | {stat.estimated_earnings} | {stat.subscribers_count} | {stat.total_views}')
+        print('-------------------------------------------------------')
 
     print('Channel Identifier:', channel.identifier)
     print('Profile URL:', channel.profile)
@@ -41,10 +43,14 @@ def show_basic():
     print('Date created:', channel.date_created)
 
 
-show_basic()
-tokens = subscribers_count_access_tokens(channel_name=target_channel)
+async def other_details():
+    await show_basic()
+    tokens = await subscribers_count_access_tokens(channel_name=target_channel)
 
-if tokens:
-    encoded_user, token = tokens
-    total_subscribers = live_subscriber_count(encoded_user, token)
-    print(f'Live subscribers: {total_subscribers}')
+    if tokens:
+        encoded_user, token = tokens
+        total_subscribers = await live_subscriber_count(encoded_user, token)
+        print(f'Live subscribers: {total_subscribers}')
+
+
+asyncio.run(other_details())

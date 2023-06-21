@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor, wait
+import asyncio
 from typing import Union, List, Tuple
 
 from bs4 import BeautifulSoup
@@ -172,7 +172,7 @@ def daily_stats_search(soup: BeautifulSoup) -> List[DailyStat]:
     return data
 
 
-def fetch_homepage(channel_name: str) -> Union[str, None]:
+async def fetch_homepage(channel_name: str) -> Union[str, None]:
     """
     Returns home page source code
 
@@ -180,13 +180,13 @@ def fetch_homepage(channel_name: str) -> Union[str, None]:
     :return: Union[str, None]
     """
     target_url = f'https://socialblade.com/youtube/c/{channel_name}'
-    response = fetch(target_url)
+    response = await fetch(target_url)
 
-    if response.ok:
+    if response.status_code == 200:
         return response.text
 
 
-def fetch_monthly_page(channel_name: str) -> Union[str, None]:
+async def fetch_monthly_page(channel_name: str) -> Union[str, None]:
     """ Returns source code of monthly stats page
 
     :param channel_name: YouTube channel name
@@ -194,9 +194,9 @@ def fetch_monthly_page(channel_name: str) -> Union[str, None]:
     """
 
     target_url = f'https://socialblade.com/youtube/c/{channel_name}/monthly'
-    response = fetch(target_url)
+    response = await fetch(target_url)
 
-    if response.ok:
+    if response.status_code == 200:
         return response.text
 
 
@@ -281,7 +281,7 @@ def channel_category_search(soup: BeautifulSoup) -> Union[str, None]:
         return tag.text.strip()
 
 
-def home_page_scrape(channel_name: str, channel: YouTubeChannel) -> bool:
+async def home_page_scrape(channel_name: str, channel: YouTubeChannel) -> bool:
     """
     Returns True if home page is scraped successfully else false
     :param channel_name: YouTube channel name
@@ -289,7 +289,7 @@ def home_page_scrape(channel_name: str, channel: YouTubeChannel) -> bool:
     :return: bool
     """
 
-    code = fetch_homepage(channel_name)
+    code = await fetch_homepage(channel_name)
     if not code:
         return False
 
@@ -316,7 +316,7 @@ def home_page_scrape(channel_name: str, channel: YouTubeChannel) -> bool:
     return True
 
 
-def daily_stats_scrape(channel_name: str) -> List[DailyStat]:
+async def daily_stats_scrape(channel_name: str) -> List[DailyStat]:
     """
     Returns  30 days daily stats
 
@@ -324,7 +324,7 @@ def daily_stats_scrape(channel_name: str) -> List[DailyStat]:
     :return:
     """
 
-    code = fetch_monthly_page(channel_name)
+    code = await fetch_monthly_page(channel_name)
     if not code:
         return []
 
@@ -332,24 +332,20 @@ def daily_stats_scrape(channel_name: str) -> List[DailyStat]:
     return daily_stats_search(soup)
 
 
-def social_blade_scrape(channel_name: str) -> Union[YouTubeChannel, None]:
+async def social_blade_scrape(channel_name: str) -> Union[YouTubeChannel, None]:
     # Create a BeautifulSoup object with the HTML content
 
-    with ThreadPoolExecutor() as executor:
-        channel = YouTubeChannel()
-        future_homepage_scrape = executor.submit(home_page_scrape, channel_name, channel)
-        future_daily_stats_scrape = executor.submit(daily_stats_scrape, channel_name)
+    channel = YouTubeChannel()
+    scrape_tasks = await asyncio.gather(home_page_scrape(channel_name, channel), daily_stats_scrape(channel_name))
+    home_page_scrape_future, daily_stats_scrape_future, = scrape_tasks
 
-        # Wait for futures to complete
-        wait([future_homepage_scrape, future_daily_stats_scrape])
+    # Check if the home page is scraped successfully
+    if not home_page_scrape_future:
+        # Maybe got 404 status because channel don't exist or something went wrong
+        return None
 
-        # Check if the home page is scraped successfully
-        if not future_homepage_scrape.result():
-            # Maybe got 404 status because channel don't exist or something went wrong
-            return None
-
-        channel.daily_stats = future_daily_stats_scrape.result()
-        return channel
+    channel.daily_stats = daily_stats_scrape_future
+    return channel
 
 
 def get_username_from_url(url: str) -> Union[str, None]:
@@ -360,7 +356,7 @@ def get_username_from_url(url: str) -> Union[str, None]:
         return url_split[-1]
 
 
-def youtube(url: str = None, channel_name: str = None) -> Union[YouTubeChannel, None]:
+async def youtube(url: str = None, channel_name: str = None) -> Union[YouTubeChannel, None]:
     """
     Priority order: channel_name, url
     Start scraping social blade easily.
@@ -393,7 +389,7 @@ def youtube(url: str = None, channel_name: str = None) -> Union[YouTubeChannel, 
     if not channel_name:
         return None
 
-    return social_blade_scrape(channel_name)
+    return await social_blade_scrape(channel_name)
 
 
 def subscribers_count_access_tokens_search(soup: BeautifulSoup) -> Union[Tuple[str, str], None]:
@@ -411,11 +407,11 @@ def subscribers_count_access_tokens_search(soup: BeautifulSoup) -> Union[Tuple[s
         return encoded_query.text.strip(), token.text.strip()
 
 
-def subscribers_count_access_tokens(channel_name: str) -> Union[Tuple[str, str], None]:
+async def subscribers_count_access_tokens(channel_name: str) -> Union[Tuple[str, str], None]:
     target_url = f'https://socialblade.com/youtube/user/{channel_name}/realtime'
-    response = fetch(target_url)
+    response = await fetch(target_url)
 
-    if not response.ok:
+    if not response.status_code == 200:
         return None
 
     code = response.text
@@ -423,7 +419,7 @@ def subscribers_count_access_tokens(channel_name: str) -> Union[Tuple[str, str],
     return subscribers_count_access_tokens_search(soup)
 
 
-def live_subscriber_count(encoded_query: str, token: str) -> Union[int, None]:
+async def live_subscriber_count(encoded_query: str, token: str) -> Union[int, None]:
     """
     Returns live subscriber number
 
@@ -438,10 +434,10 @@ def live_subscriber_count(encoded_query: str, token: str) -> Union[int, None]:
         'token': token
     }
 
-    response = fetch(url, params=params, extra_headers={
+    response = await fetch(url, params=params, extra_headers={
         'Origin': 'https://socialblade.com',
         'Referer': 'https://socialblade.com/',
     })
 
-    if response.ok:
+    if response.status_code == 200:
         return int(response.text)
