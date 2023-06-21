@@ -3,7 +3,7 @@ from fake_useragent import UserAgent
 from requests import Response
 
 
-def fetch(target_url: str, params: dict = None, extra_headers: dict = None) -> Response:
+def default_fetch(target_url: str, params: dict = None, extra_headers: dict = None) -> Response:
     # Create a UserAgent object
     user_agent = UserAgent()
 
@@ -23,3 +23,6 @@ def fetch(target_url: str, params: dict = None, extra_headers: dict = None) -> R
         headers = {**headers, **extra_headers}
 
     return requests.get(target_url, params=params, headers=headers)
+
+
+fetch = default_fetch
