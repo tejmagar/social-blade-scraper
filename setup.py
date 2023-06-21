@@ -6,7 +6,7 @@ with open("README.md", "r") as file:
 
 setup(
     name="social-blade-scraper",
-    version="0.0.5",
+    version="0.1.0",
     description="Social blade scraper",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -14,7 +14,7 @@ setup(
     url="https://github.com/tejmagar/social-blade-scraper",
     install_requires=[
         "beautifulsoup4",
-        "requests",
+        "httpx",
         "fake-useragent"
     ],
     package_dir={'': 'src'},

@@ -6,7 +6,7 @@ import re
 
 from dataclasses import dataclass, asdict
 
-from src.social_blade_scraper.fetch import fetch
+from ..fetch import fetch
 from json import dumps
 
 

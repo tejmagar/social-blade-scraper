@@ -1,7 +1,7 @@
 from fake_useragent import UserAgent
 from httpx import AsyncClient, Response
 
-# Since, same host is used to  scrape data, using HTTPX library
+# Use same client for fetching page faster for same host
 client = AsyncClient()
 
 
